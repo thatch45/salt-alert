@@ -1,0 +1,28 @@
+# Maintainer: Thomas S Hatch <thatch45@gmail.com>
+
+pkgname=salt-alert
+pkgver=0.8.7
+pkgrel=1
+pkgdesc='An alert delivery system that extends the salt core'
+arch=(any)
+url="https://github.com/thatch45/salt"
+license=("APACHE")
+depends=('python2'
+         'salt')
+backup=('etc/salt/alert')
+makedepends=()
+optdepends=()
+options=()
+source=("https://github.com/downloads/thatch45/salt/$pkgname-$pkgver.tar.gz"
+        "salt-alert")
+md5sums=('11bc2e9042a5764e029fefbe49dddcc7')
+
+package() {
+  cd $srcdir/$pkgname-$pkgver
+
+  python2 setup.py install --root=$pkgdir/ --optimize=1
+
+  mkdir -p $pkgdir/etc/rc.d/
+  cp $srcdir/pkg/arch/salt-alert $pkgdir/etc/rc.d/
+  chmod +x $pkgdir/etc/rc.d/*
+}
