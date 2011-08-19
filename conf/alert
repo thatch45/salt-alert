@@ -126,7 +126,10 @@
 #      ${host}     = host alert occurred on
 
 alert.default:
-  summary: '${SEVERITY} ${category} ${msg} on ${host} at ${time}'
+  time:
+    format: '%c %Z'
+    timezone: UTC
+  summary: '${SEVERITY}: ${category}: "${msg}" on ${host} at ${time}'
   body: |
     severity: ${severity}
     host:     ${host}

@@ -1,5 +1,5 @@
-import salt.log
 from salt.ext.alert.notification import Recipient, Notification
+import salt.log
 
 log = salt.log.getLogger(__name__)
 
@@ -28,7 +28,7 @@ time:     ${time}
 category: ${category}
 message:  ${msg}'''
         if config:
-            summary = config.get('body', summary)
+            summary = config.get('summary', summary)
             body = config.get('body', body)
         return summary, body
 

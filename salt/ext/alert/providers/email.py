@@ -23,7 +23,7 @@ class EmailProvider(object):
         try:
             log.trace('connect to %s %s', self.smtp_server, self.smtp_port)
             smtp = smtplib.SMTP(self.smtp_server, self.smtp_port)
-            log.trace('send from %s to %s: %s', self.user, addr, msg)
+            log.trace('send from %s to %s:\n%s', self.user, addr, msg)
             smtp.sendmail(self.user, addr, msg)
             smtp.quit()
             log.trace('email alert sent to %s', addr)
