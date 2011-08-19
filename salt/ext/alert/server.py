@@ -4,9 +4,11 @@ This module contains all fo the routines needed to set up an alert server.
 # Import python modules
 import os
 import logging
+import time
 # Import salt modules
 import salt.master
 import salt.client
+import salt.ext.alert.loader
 # Import cryptography modules
 from M2Crypto import RSA
 
@@ -55,12 +57,20 @@ class AESFuncs(object):
         self.crypticle = crypticle
         # Make a client
         self.local = salt.client.LocalClient(self.opts['conf_file'])
+        self.notifications = salt.ext.alert.loader.Loader().load(opts)
 
     def _alert(self, load):
         '''
         Handle an alert sent from a minion.
         '''
-        log.error('XXX ----------------------> HANDLE ALERT: %s',load)
+        log.debug('_alert: %s', load)
+        severity = load.get('severity', '?')
+        load['severity'] = severity.lower()
+        load['SEVERITY'] = severity.upper()
+        load['time'] = time.strftime('%c', time.gmtime())
+        for notification in self.notifications:
+            if notification.match(load):
+                notification.send(load)
 
     def run_func(self, func, load):
         '''
