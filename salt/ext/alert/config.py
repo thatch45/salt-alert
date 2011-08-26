@@ -14,7 +14,7 @@ def alert_config(path):
     '''
     opts = {'interface': '0.0.0.0',
             'worker_threads': 3,
-            'worker_start_port': '45156',
+            'worker_start_port': '46056',
             'ret_port': '4507',
             'root_dir': '/',
             'pki_dir': '/etc/salt/pki',

@@ -7,8 +7,7 @@ pkgdesc='An alert delivery system that extends the salt core'
 arch=(any)
 url="https://github.com/thatch45/salt"
 license=("APACHE")
-depends=('python2'
-         'salt')
+depends=('python2' 'salt')
 backup=('etc/salt/alert')
 makedepends=()
 optdepends=()

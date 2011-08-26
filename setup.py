@@ -41,7 +41,7 @@ setup(
           'Topic :: System :: Distributed Computing',
           ],
       packages=['salt.ext.alert',
-                'salt.ext.alert.providers',
+                'salt.ext.alert.agents',
                 ],
       scripts=['scripts/salt-alert'],
       data_files=[(os.path.join(etc_path, 'salt'),

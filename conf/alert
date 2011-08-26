@@ -81,87 +81,91 @@
 # Alert providers deliver alerts to users.  Typically providers include
 # email and instant message services, but in the future may include SMS or
 # pager services.
-#
-#   provider-name:
-#     type: defautls to provider-name, must be in [email,aim,gtalk,jabber,aim]
-#     host: server fqdn
-#     port: server port
-#     user: user name used to attach to service or send message from
-#     password: user's password if needed
-#     
-#alert.providers:
-#  email:
-#    host: my_smtp_server
-#    port: 25
-#    user: My User <myuser@example.com>
-#    password: mypassword
-#  aim:
-#    host: login.oscar.aol.com
-#    port: 5190
-#    user: myuser
-#    password: mypassword
-#  gtalk:
-#    host: talk.google.com
-#    port: 5222
-#    user: myuser
-#    password: mypassword
-#  mycompany:
-#    type: jabber
-#    host: chat.example.com
-#    port: 5222
-#    user: myuser
-#    password: mypassword
 
-# The alert summary is used for SMS, alphanumeric pagers, and email
-# subject lines.  The alert body is used for email bodies and chat
-# messages.  The summary and body can be left at their default setting
-# or overridden on a notification by notification basis.  The summary
-# and body may contain the following variables:
-#
+# How time should be formatted (see strftime for options) and what
+# timezone time is displayed in.
+#alert.time:
+#  format: '%c %Z'
+#  timezone: UTC
+
+# Possible values for ${verb}.  When an alert is triggered the 'raised'
+# verb is used.  When the condition that triggered the alert no longer
+# exists, the alert may be resent with the 'cleared' verb.
+#alert.verbs:
+#  raised: occurred
+#  cleared: resolved
+
+######        Alert agents            #####
+###########################################
+# Alert agents deliver alerts to subscribers.
+# The agent messages may contain the following variables:
 #      ${severity} = alert severity in lower case, e.g. warning
 #      ${SEVERITY} = alert severity in upper case, e.g. WARNING
 #      ${category} = alert category, e.g. disk.full
 #      ${msg}      = alert message
-#      ${time}     = alert date and time in UTC
+#      ${time}     = alert date and time
 #      ${host}     = host alert occurred on
+#      ${verb}     = verb used to distinguish whether the alert was
+#                    raised ("occurred") or cleared ("resolved")
 
-alert.default:
-  time:
-    format: '%c %Z'
-    timezone: UTC
-  summary: '${SEVERITY}: ${category}: "${msg}" on ${host} at ${time}'
-  body: |
-    severity: ${severity}
-    host:     ${host}
-    time:     ${time}
-    category: ${category}
-    message:  ${msg}
-
-# Alert notification specifies how alerts should be delivered to the users.
-# Recipients are either email addresses or a provider:user pair, e.g. aim:myname.
+######     Email alert agent          #####
+###########################################
+#alert.email:
+#  smtp:
+#    host: smtp.gmail.com
+#    port: 25 or 587
+#    user: myagent@gmail.com
+#    password: mypassword
+#  from: My Agent Alert <myagent@gmail.com>
+#  subject: '${SEVERITY} ${verb} on ${host}: ${msg}'
+#  headers:
+#    X-Priority: 1
+#  body: |
+#    ${msg}
 #
-#    category-regex:
-#      severity-regex:
-#        recipients: list of addresses
-#        summary: text used for SMS or "subject" in email
-#        body: |
-#          the message to send
-#          that can span several lines
+#    severity: ${severity}
+#    category: ${category}
+#    host:     ${host}
+#    time:     ${time}
 
-#alert.notifications:
-#  # Send custom critical net alert message to the netops group
-#  net.*:
-#    critical:
-#      recipients: netops@example.com
-#      summary: ${SEVERITY} ${host} ${msg}
-#      body: |
-#        ${SEVERITY} ${category} alert on ${host} at ${time}:
-#        ${msg}
-#  # Send default alert message for all critical alerts to the on-call admin,
-#  # Send all alerts to IT manager
-#  .*:
-#    critical:
-#      recipients: >
-#        aim:oncalladmin
-#    .*:
-#      recipients: itmgr@example.com
+######  Jabber (XMPP) alert agent(s)  #####
+###########################################
+#alert.jabber:
+#  gtalk:
+#    host: talk.google.com
+#    port: 5222 or 5223
+#    user: myagent@gmail.com
+#    password: mypassword
+#  mycompany:
+#    host: chat.example.com
+#    port: 5222
+#    user: myagent@example.com
+#    password: mypassword
+#  message: |
+#    ${SEVERITY} ${category} ${verb} on ${host}:
+#    ${msg}
+
+
+######     Alert subscriptions        #####
+###########################################
+# A subscription is a regular expression that matches the alert's
+# category and severity plus a list of subscribers.
+#
+# The category and alert are concatenated into single string separated
+# by a '/', e.g. 'disk.spindle/error'.  The regex can match specific
+# categories like this 'disk.*/.*', specific severities like this '.*/error',
+# or combinations of categories and severities like this 'disk.*/error'.
+# To match all alerts use '.*'.
+#
+# The subcribers are a list of addresses prefixed with the agent used
+# to deliver the alert.  For example, to specify the 'foobar' gtalk user,
+# use 'gtalk:foobar'.  If the agent prefix is missing, it defaults to 'email',
+# e.g. 'foobar@example.com' is equivalent to 'email:foobar@example.com'.
+# Email subscribers can be specified as a plain email address, e.g.
+# 'foobar@example.com', or as a real name and email address, e.g.
+# 'Big Dog <foobar@example.com>'.
+
+alert.subscriptions:
+#  disk.*/(warning|error|critical): gtalk:diskadmin
+#  .*/(warning|error|critical|notice): [gtalk:admins, Boss <mgr@example.com>]
+#  .*: [gtalk:loggerbot, On-call Admins <oncall@example.com>]

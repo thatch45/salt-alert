@@ -3,12 +3,10 @@ This module contains all fo the routines needed to set up an alert server.
 '''
 # Import python modules
 import logging
-import os
-import time
 # Import salt modules
 import salt.master
 import salt.client
-import salt.ext.alert.loader
+import salt.ext.alert.alerter
 # Import cryptography modules
 from M2Crypto import RSA
 
@@ -57,39 +55,15 @@ class AESFuncs(object):
         self.crypticle = crypticle
         # Make a client
         self.local = salt.client.LocalClient(self.opts['conf_file'])
-        self.notifications = salt.ext.alert.loader.Loader().load(opts)
-        # Get date/time formatting
-        config = opts.get('alert.default',{}).get('time',{})
-        self.timeformat = config.get('format', '%c %Z')
-        self.timezone = config.get('timezone', 'UTC')
-
-    def __strftime(self, format, epoch, timezone):
-        '''
-        Ugly kludge for formatting UTC time in arbitrary timezone.
-        '''
-        oldtz = os.environ.get('TZ')
-        os.environ['TZ'] = timezone
-        time.tzset()
-        result = time.strftime(format, time.localtime(epoch))
-        if oldtz:
-            os.environ['TZ'] = oldtz
-        else:
-            del os.environ['TZ']
-        time.tzset()
-        return result
+        self.alerter = salt.ext.alert.alerter.Alerter()
+        self.alerter.load(opts)
 
     def _alert(self, load):
         '''
         Handle an alert sent from a minion.
         '''
         log.debug('_alert: %s', load)
-        severity = load.get('severity', '?')
-        load['severity'] = severity.lower()
-        load['SEVERITY'] = severity.upper()
-        load['time'] = self.__strftime(self.timeformat, time.time(), self.timezone)
-        for notification in self.notifications:
-            if notification.match(load):
-                notification.send(load)
+        self.alerter.deliver(load)
 
     def run_func(self, func, load):
         '''
