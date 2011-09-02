@@ -130,12 +130,34 @@
 
 ######  Jabber (XMPP) alert agent(s)  #####
 ###########################################
+# Jabber agent configuration:
+#   host         = optional Jabber server FQDN.  If not specified, it is
+#                  parsed from the user address.  You will have to specify
+#                  this for GTalk if you do not have dnspython installed
+#                  (since the server is gtalk.google.com, not gmail.com as
+#                  implied by the gtalk addresses).
+#   port         = optional Jabber server port.  Default = 5222.
+#   user         = Jabber user sending alerts
+#   password     = Jabber user's password
+#   max_msgs     = maximum number of messages to buffer for each offline and
+#                  unauthorized alert recipient.  Default = 50.
+#                  Set to 0 to buffer an unlimited number of messages.
+#   max_age      = maximum number of seconds to buffer a message to an
+#                  offline or unauthorized recipient.  Default = 3600
+#                  (1 hour).  Set to 0 to buffer forever.
+#   msgs_per_sec = maximum message per second that can be sent to the
+#                  server.  Gtalk only accepts 1 msg per 10 seconds
+#   message      = message template used for messages to all Jabber
+#                  recipients.  See above for available ${var} variables.
 #alert.jabber:
 #  gtalk:
 #    host: talk.google.com
 #    port: 5222 or 5223
 #    user: myagent@gmail.com
 #    password: mypassword
+#    max_msgs: 50
+#    max_age: 3600
+#    msgs_per_sec: 0.1
 #  mycompany:
 #    host: chat.example.com
 #    port: 5222

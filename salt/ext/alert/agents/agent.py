@@ -7,11 +7,15 @@ class Agent(object):
     '''
     def __init__(self, protocol):
         '''
+        Create an agent with an empty distribution list.
         '''
         self.protocol = protocol
         self.distrib_lists = {}
 
     def __str__(self):
+        '''
+        A string suitable for debugging.
+        '''
         lines = []
         for regex, addrs in self.distrib_lists.iteritems():
             fulladdrs = [':'.join([self.protocol, addr]) for addr in addrs]
@@ -19,6 +23,8 @@ class Agent(object):
         return '\n'.join(lines)
 
     def has_subscribers(self):
+        '''
+        '''
         return len(self.distrib_lists) > 0
 
     def add_subscriber(self, regex, addr):
@@ -47,3 +53,11 @@ class Agent(object):
                 subscribers.update(addrs)
         if len(subscribers) > 0:
             self._deliver(sorted(subscribers), alert)
+
+    def _deliver(self, subscribers, alert):
+        '''
+        Delivery backend that subclasses must override.
+        '''
+        raise NotImplementedError( '.'.join([self.__module__,
+                                             self.__class__.__name__,
+                                             '_deliver()']))

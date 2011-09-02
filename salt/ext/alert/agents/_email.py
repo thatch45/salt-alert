@@ -24,6 +24,7 @@ log = salt.log.getLogger(__name__)
 
 class EmailAgent(Agent):
     '''
+    An agent that delivers salt alerts to email users.
     '''
     def __init__(self, config):
         '''
