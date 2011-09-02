@@ -19,6 +19,7 @@ def alert_config(path):
             'root_dir': '/',
             'pki_dir': '/etc/salt/pki',
             'cachedir': '/var/cache/salt',
+            'sock_dir': '/tmp/.salt-unix',
             'file_roots': {
                 'base': ['/srv/salt'],
                 },
