@@ -25,7 +25,7 @@ def load_agents(config):
                 continue
             try:
                 new_agents = mod.load_agents(value)
-            except AttributeError:
+            except AttributeError, ex:
                 log.error('not an agent module: %s', modname, exc_info=ex)
                 continue
             common = set(agents.keys()) & set(new_agents.keys())
