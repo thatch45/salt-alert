@@ -123,10 +123,14 @@ class JabberAgent(Agent, sleekxmpp.ClientXMPP):
         self.__pending()
 
     def __wait(self):
+        '''
+        '''
         self.throttle_wait = False
         self.__pending()
 
     def __retry_service(self):
+        '''
+        '''
         log.trace('retrying send')
         self.service_down = False
         self.__pending()
@@ -135,9 +139,8 @@ class JabberAgent(Agent, sleekxmpp.ClientXMPP):
         '''
         Send pending messages.
         '''
-        if self.service_down or self.throttle_wait:
-            return
-        log.trace('%s recipients have msgs to send', len(self.pending))
+        log.trace('_pending: %s recipients have msgs to send',
+                    len(self.pending))
         while self.pending:
             for recipient in self.recipients.values():
                 if self.__throttled():
@@ -149,10 +152,14 @@ class JabberAgent(Agent, sleekxmpp.ClientXMPP):
                     self.send_message(mto=addr, mbody=msg, mtype='chat')
 
     def __throttled(self):
+        '''
+        '''
         if self.service_down:
+            log.trace('service is down ... waiting')
             return True
         if self.send_interval > 0:
             if self.throttle_wait:
+                log.trace('throttle messages ... waiting')
                 return True
             now = time.time()
             secs_since_last_send = now - self.last_send_time
@@ -276,3 +283,18 @@ class JabberAgent(Agent, sleekxmpp.ClientXMPP):
             log.trace('send presence to %s', recipient.addr)
             recipient.state = WAITING_FOR_AUTHZ
             self.send_presence(pto=recipient.addr, ptype='subscribe')
+
+def load_agents(config):
+    '''
+    Load all jabber agents.
+    '''
+    agents = {}
+    message = config.get('message', DEFAULT_MESSAGE)
+    for key, value in config.iteritems():
+        if key == 'message':
+            continue
+        if message and 'message' not in value:
+            value = value.copy()
+            value['message'] = message
+        agents[key] = JabberAgent(key, value)
+    return agents
