@@ -152,7 +152,7 @@
 #alert.jabber:
 #  gtalk:
 #    host: talk.google.com
-#    port: 5222 or 5223
+#    port: 5222
 #    user: myagent@gmail.com
 #    password: mypassword
 #    max_msgs: 50
