@@ -13,7 +13,6 @@ import salt.log
 
 DEFAULT_MAX_MSGS = 50
 DEFAULT_MAX_AGE = 60 * 60 # 1 hour
-MAX_MESSAGES_PER_SECOND = 10                # XXX how to throttle messages?
 
 WAITING_FOR_AUTHZ = 'WAIT-AUTHZ'
 UNKNOWN = 'UNKNOWN'
@@ -60,10 +59,15 @@ class JabberAgent(Agent, sleekxmpp.ClientXMPP):
         self.max_msgs = config.get('max_msgs', DEFAULT_MAX_MSGS)
         self.max_age = config.get('max_age', DEFAULT_MAX_AGE)
 
+        log.trace('connect to %s as %s/%s', self.server_addr, user, password)
+
         self.connected  = False
         self.message    = string.Template(config.get('message', DEFAULT_MESSAGE))
         self.pending    = set()
         self.recipients = {}
+
+        self.service_down = False
+        self.retry_service_wait = 60
 
         self.last_send_time = 0
         self.throttle_wait = False
@@ -79,6 +83,8 @@ class JabberAgent(Agent, sleekxmpp.ClientXMPP):
         self.add_event_handler('presence_unsubscribed', self.__presence)
         self.add_event_handler('presence_available', self.__presence)
         self.add_event_handler('presence_error', self.__presence)
+
+        self.add_event_handler('changed_subscription', self.__subscription)
 
         self.add_event_handler('message', self.__message)
         self.add_event_handler('roster_update', self.__roster)
@@ -120,10 +126,17 @@ class JabberAgent(Agent, sleekxmpp.ClientXMPP):
         self.throttle_wait = False
         self.__pending()
 
+    def __retry_service(self):
+        log.trace('retrying send')
+        self.service_down = False
+        self.__pending()
+
     def __pending(self):
         '''
         Send pending messages.
         '''
+        if self.service_down or self.throttle_wait:
+            return
         log.trace('%s recipients have msgs to send', len(self.pending))
         while self.pending:
             for recipient in self.recipients.values():
@@ -136,7 +149,9 @@ class JabberAgent(Agent, sleekxmpp.ClientXMPP):
                     self.send_message(mto=addr, mbody=msg, mtype='chat')
 
     def __throttled(self):
-        if self.send_interval:
+        if self.service_down:
+            return True
+        if self.send_interval > 0:
             if self.throttle_wait:
                 return True
             now = time.time()
@@ -199,32 +214,44 @@ class JabberAgent(Agent, sleekxmpp.ClientXMPP):
             if etype == 'unsubscribed':
                 recipient.state = READY
                 self.__set_state(recipient)
+            elif etype == 'subscribe':
+                self.send_presence(pto=addr, ptype='subscribed')
             elif etype in ['subscribed', 'available']:
                 recipient.state = READY
                 self.__pending()
 
+    def __subscription(self, event):
+        '''
+        Handle peers subscribing and unsubscribing to us.
+        '''
+        addr = event.get_from().bare
+        etype = event.get_type()
+        log.trace('_subscription: addr=%s type=%s', addr, etype)
+        recipient = self.recipients.get(addr)
+        if recipient:
+            if etype == 'subscribed':
+                # Send authorization back to peer
+                self.send_presence(pto=addr, ptype='subscribed')
+
     def __message(self, event):
         '''
-        Handle 'service-unavailable' error that occurs either when:
-        1. the peer is offline
-        2. we miss the 'presence unsubcribed' event and sent a message
-        3. we've flooded the server or peer and they are rejecting our
-           messages
+        Handle 'service-unavailable' error by requeueing message and
+        temporarily suspending message sending.
         '''
         if event['type'] == 'error':
             addr = event['from'].bare
             condition = event['error'].get_condition()
-            log.debug('error: %s: %s', addr, condition)
+            log.error('%s: %s', addr, condition)
             if condition == 'service-unavailable':
-                # Lost authorization and __presence('unsubscribed')
-                # wasn't called.  Reauthorize user.
                 recipient = self.recipients.get(addr)
                 if recipient:
                     msg = event.get('body')
                     log.debug('resend to %s: %s', addr, msg)
                     recipient.readd_msg(msg)
-                    recipient.state = READY
-                    self.__set_state(recipient)
+                    self.service_down = True
+                    self.schedule('service-down',
+                                  self.retry_service_wait,
+                                  self.__retry_service)
 
     def __set_state(self, recipient, roster_item=None):
         '''
